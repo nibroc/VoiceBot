@@ -1,0 +1,26 @@
+VoiceBot...
+
+A crappy little bot that just voices people who PM it "voiceme"
+
+Ops in the  channel it idles in can message "blockvoice user1 user2..." to
+have the bot ignore "voiceme" PMs from those users.  (unblockvoice does the 
+inverse)
+
+Additionally, ops can PM it "RAW blah" and <blah> will be sent to back to the
+server from the bot (example: "RAW MODE #chan -v nick")
+
+Also, it has very basic !learn functionality
+
+!learn test blah
+? test
+Will output blah
+
+
+To run it:
+
+python voicebot.py
+
+Or to have it output debugging data to stdout:
+
+python voicebot.py output
+
