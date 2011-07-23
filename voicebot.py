@@ -24,11 +24,11 @@ DEBUG_OUTPUT = len(argv) > 1 and argv[1] == "output"
 CONFIG = {
 	"nick": "VoiceBot",
 	"channel": "#somechannel",
-	"server": ("somehost", 6667),
+	"server": ("someserver", 6667),
 	"user": {
 		"username": "VoiceBot",
 		"hostname": "voice.bot",
-		"servername": "my.pony.com.es",
+		"servername": "some.host",
 		"realname": "THEY WON'T LET ME STOP VOICING PEOPLE!"
 	}
 }
@@ -89,6 +89,10 @@ opNicks = []
 
 learned = {}
 
+activelyVoicing = True
+
+voicedPeople = []
+
 if path.isfile("learned.db"):
 	learnedFile = open("learned.db", "r")
 	learned = pickle.load(learnedFile)
@@ -114,7 +118,7 @@ for line in f:
 	elif cmd == "376":
 		f.write("JOIN %s\n" % CONFIG['channel'])
 		f.flush()
-	# 
+	# User list when the bot joins a channel
 	elif cmd == "353":
 		# args: ['ownnick', '=', '#channel','nick1 nick2 nick3']
 		channel = args[2]
@@ -127,18 +131,28 @@ for line in f:
 					opNicks.append(opNick.lower())
 	elif cmd == "JOIN":
 		# Someone joined...
-		pass
+		joinNick, joinUser, joinHost = prefix
+		
+		if joinNick.lower() != CONFIG['nick'].lower() and activelyVoicing and joinNick.lower() not in voiceIgnore:
+			f.write("MODE %s +v %s\n" % (channel, joinNick));
+			f.flush();
+			if not joinNick.lower() in voicedPeople:
+				voicedPeople.append(joinNick.lower())
+		
 	elif cmd == "PART":
 		# Someone parted
 		partNick, partUser, partHost = prefix
 		if partNick.lower() in opNicks:
 			opNicks.remove(partNick.lower())
+		if partNick.lower() in voicedPeople:
+			voicedPeople.remove(partNick.lower())
 	elif cmd == "QUIT":
 		# Someone quit
 		partNick, partUser, partHost = prefix
 		if partNick.lower() in opNicks:
 			opNicks.remove(partNick.lower())
-		pass
+		if partNick.lower() in voicedPeople:
+			voicedPeople.remove(partNick.lower())
 	elif cmd == "MODE":
 		# Have to make sure it's not a global mode on the nick (on the bot)
 		channel = args[0]
@@ -162,11 +176,13 @@ for line in f:
 		msg = args[1]
 		if target == CONFIG['nick']:
 			# Private message to bot
-			if msg == "voiceme":
+			if msg == "voiceme" and activelyVoicing:
 				if not msgNick.lower() in voiceIgnore:
 					f.write("MODE %s +v %s\n" % (CONFIG['channel'], msgNick))
 					f.write("PRIVMSG %s :%s\n" % (msgNick, "You done been voiced"))
 					f.flush()
+					if not msgNick.lower() in voicedPeople:
+						voicedPeople.append(msgNick.lower())
 				else:
 					f.write("PRIVMSG %s :%s\n" % (msgNick, "You've been banned from being voiced!"))
 					f.flush()
@@ -182,6 +198,8 @@ for line in f:
 							voiceIgnore.append(n.lower())
 							f.write("PRIVMSG %s :%s\n" % (msgNick, "Added %s to the ignore list" % n))
 						f.flush()
+						if n.lower() in voicedPeople:
+							voicedPeople.remove(n.lower())
 				
 				# Remove a user from the blocked voice list
 				if msg.find("unblockvoice ") == 0:
@@ -201,8 +219,27 @@ for line in f:
 				if msg == "debug":
 					f.write("PRIVMSG %s :%s\n" % (msgNick, "Operators: " + ' '.join(opNicks)))
 					f.write("PRIVMSG %s :%s\n" % (msgNick, "Voice banned: " + ' '.join(voiceIgnore)))
+					av = "no"
+					if activelyVoicing:
+						av = "yes"
+					f.write("PRIVMSG %s :%s\n" % (msgNick, "Actively voicing: " + av))
 					f.flush()
-					
+				
+				if msg == "killvoice":
+					activelyVoicing = False
+					f.write("PRIVMSG %s :%s\n" % (msgNick, "Killed voice"))
+					for p in voicedPeople:
+						f.write("MODE %s -v %s\n" % (CONFIG['channel'], p))
+					voicedPeople = []
+					f.flush()
+				elif msg == "stopvoice":
+					activelyVoicing = False
+					f.write("PRIVMSG %s :%s\n" % (msgNick, "Will no longer voice"))
+					f.flush()
+				elif msg == "startvoice":
+					activelyVoicing = True
+					f.write("PRIVMSG %s :%s\n" % (msgNick, "Will voice"))
+					f.flush()
 		else:
 			# Message to a channel
 			
