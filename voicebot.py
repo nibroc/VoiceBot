@@ -23,9 +23,9 @@ import pickle
 DEBUG_OUTPUT = len(argv) > 1 and argv[1] == "output"
 
 CONFIG = {
-	"nick": "VoiceBot2",
+	"nick": "VoiceBot",
 	"channel": "#somechannel",
-	"server": ("my.pony.com.es", 6667),
+	"server": ("someserver", 6667),
 	"user": {
 		"username": "VoiceBot",
 		"hostname": "voice.bot",
