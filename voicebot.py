@@ -1,3 +1,4 @@
+#!/usr/bin/python
 """
 
 VoiceBot...
@@ -22,9 +23,9 @@ import pickle
 DEBUG_OUTPUT = len(argv) > 1 and argv[1] == "output"
 
 CONFIG = {
-	"nick": "VoiceBot",
+	"nick": "VoiceBot2",
 	"channel": "#somechannel",
-	"server": ("someserver", 6667),
+	"server": ("my.pony.com.es", 6667),
 	"user": {
 		"username": "VoiceBot",
 		"hostname": "voice.bot",
@@ -240,6 +241,25 @@ for line in f:
 					activelyVoicing = True
 					f.write("PRIVMSG %s :%s\n" % (msgNick, "Will voice"))
 					f.flush()
+				elif msg == "commands":
+					f.write("PRIVMSG %s :%s\n" % (msgNick, "commands: voiceme, blockvoice, unblockvoice, raw, stopvoice, killvoice, startvoice, debug, !learn, !forget, !replace"))
+					f.write("PRIVMSG %s :%s\n" % (msgNick, "For a more detailed list, use 'help'"))
+					f.flush()
+				elif msg == "help":
+					f.write("PRIVMSG %s :%s\n" % (msgNick, "-----Private message commands-----"))
+					f.write("PRIVMSG %s :%s\n" % (msgNick, "voiceme - Voices the messager unless [s]he is on the ignore list"))
+					f.write("PRIVMSG %s :%s\n" % (msgNick, "blockvoice [nickList] - adds 1 or more nicks to the block list (space separated list of nicks)"))
+					f.write("PRIVMSG %s :%s\n" % (msgNick, "unblockvoice [nickList] - removes 1 or more nicks from the block list (space separated list of nicks)"))
+					f.write("PRIVMSG %s :%s\n" % (msgNick, "raw [line] - has the bot send the line to the server (ex: raw PRIVMSG #channel :I can talk!)"))
+					f.write("PRIVMSG %s :%s\n" % (msgNick, "stopvoice - tells the bot to no longer voice when people join"))
+					f.write("PRIVMSG %s :%s\n" % (msgNick, "killvoice - tells the bot to no longer voice when people join, and removes voice from anyone to whom it has been given"))
+					f.write("PRIVMSG %s :%s\n" % (msgNick, "startvoice - tells the bot to start voicing again (note: at this time, it not automatically regiven to people from whom it was removed with killvoice)"))
+					f.write("PRIVMSG %s :%s\n" % (msgNick, "debug - Prints out a few debugging things, such as which users are voiced blocked and whether the bot is voicing"))
+					f.write("PRIVMSG %s :%s\n" % (msgNick, "-----Channel commands-----"))
+					f.write("PRIVMSG %s :%s\n" % (msgNick, "!learn [key] [definition]"))
+					f.write("PRIVMSG %s :%s\n" % (msgNick, "!replace [key] [newDefinition]"))
+					f.write("PRIVMSG %s :%s\n" % (msgNick, "!forget [key]"))
+					f.flush()
 		else:
 			# Message to a channel
 			
@@ -251,21 +271,25 @@ for line in f:
 			if (msg.find("!learn ") == 0 or msg.find("!replace ") == 0) and msgNick.lower() in opNicks:
 				sp = msg.split(' ')
 				if(len(sp) >= 3):
-					key = sp[1]
+					key = sp[1].lower()
 					val = ' '.join(sp[2:])
 					learned[key] = val
 					flushLearned = True
+				f.write("NOTICE %s :%s\n" % (msgNick, "Learned"))
+				f.flush()
 			
 			elif msg.find("!forget ") == 0 and msgNick.lower() in opNicks:
-				key = msg[len("!forget "):]
+				key = msg[len("!forget "):].lower()
 				if learned.has_key(key):
 					del learned[key]
 					flushLearned = True
+				f.write("NOTICE %s :%s\n" % (msgNick, "Forgotten"))
+				f.flush()
 					
 			elif msg.find("? ") == 0:
 				key = msg[len("? "):]
-				if learned.has_key(key):
-					f.write("PRIVMSG %s :%s\n" % (target, "\x02%s\x02: %s" % (key, learned[key])))
+				if learned.has_key(key.lower()):
+					f.write("PRIVMSG %s :%s\n" % (target, "\x02%s\x02: %s" % (key, learned[key.lower()])))
 				else:
 					f.write("PRIVMSG %s :%s\n" % (target, "I don't know \x02%s\x02" % key))
 					
